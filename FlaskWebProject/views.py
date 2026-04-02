@@ -2,7 +2,6 @@
 Routes and views for the flask application.
 """
 
-from datetime import datetime
 import logging
 import uuid
 
@@ -19,16 +18,22 @@ import msal
 
 logger = logging.getLogger(__name__)
 
-# Base URL for images stored in Azure Blob Storage
-imageSourceUrl = (
-    "https://"
-    + app.config["BLOB_ACCOUNT"]
-    + ".blob.core.windows.net/"
-    + app.config["BLOB_CONTAINER"]
-    + "/"
-)
+
+# ✅ SAFE helper to build Blob image base URL
+# (Must NOT run at import time)
+def get_image_source():
+    return (
+        "https://"
+        + app.config.get("BLOB_ACCOUNT", "")
+        + ".blob.core.windows.net/"
+        + app.config.get("BLOB_CONTAINER", "")
+        + "/"
+    )
 
 
+# -------------------------
+# Home / Index
+# -------------------------
 @app.route("/")
 @app.route("/home")
 @login_required
@@ -38,19 +43,23 @@ def home():
         "index.html",
         title="Home Page",
         posts=posts,
-        imageSource=imageSourceUrl   # ✅ REQUIRED for images to render
+        imageSource=get_image_source()  # ✅ REQUIRED for image rendering
     )
 
 
+# -------------------------
+# Create New Post
+# -------------------------
 @app.route("/new_post", methods=["GET", "POST"])
 @login_required
 def new_post():
     form = PostForm()
+
     if form.validate_on_submit():
         post = Post()
         post.save_changes(
             form,
-            request.files.get("image_path"),
+            request.files.get("image_path"),  # ✅ safe access
             current_user.id,
             new=True
         )
@@ -63,6 +72,9 @@ def new_post():
     )
 
 
+# -------------------------
+# Edit Existing Post
+# -------------------------
 @app.route("/post/<int:id>", methods=["GET", "POST"])
 @login_required
 def post(id):
@@ -72,7 +84,7 @@ def post(id):
     if form.validate_on_submit():
         post.save_changes(
             form,
-            request.files.get("image_path"),
+            request.files.get("image_path"),  # ✅ safe access
             current_user.id
         )
         return redirect(url_for("home"))
@@ -84,6 +96,9 @@ def post(id):
     )
 
 
+# -------------------------
+# Login (Local + Microsoft)
+# -------------------------
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
@@ -91,18 +106,19 @@ def login():
 
     form = LoginForm()
 
+    # ---- Local username/password login ----
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
 
         if user is None or not user.check_password(form.password.data):
-            # REQUIRED RUBRIC LOG MESSAGE
+            # ✅ REQUIRED RUBRIC LOG MESSAGE
             logger.warning("Invalid login attempt")
             flash("Invalid username or password")
             return redirect(url_for("login"))
 
         login_user(user, remember=form.remember_me.data)
 
-        # REQUIRED RUBRIC LOG MESSAGE
+        # ✅ REQUIRED RUBRIC LOG MESSAGE
         if user.username == "admin":
             logger.info("admin logged in successfully")
 
@@ -111,8 +127,10 @@ def login():
             next_page = url_for("home")
         return redirect(next_page)
 
+    # ---- Microsoft Sign‑In ----
     session["state"] = str(uuid.uuid4())
     auth_url = _build_auth_url(scopes=Config.SCOPE, state=session["state"])
+
     return render_template(
         "login.html",
         title="Sign In",
@@ -121,6 +139,9 @@ def login():
     )
 
 
+# -------------------------
+# Microsoft OAuth Callback
+# -------------------------
 @app.route(Config.REDIRECT_PATH)
 def authorized():
     if request.args.get("state") != session.get("state"):
@@ -131,6 +152,7 @@ def authorized():
 
     if request.args.get("code"):
         cache = _load_cache()
+
         result = _build_msal_app(cache=cache).acquire_token_by_authorization_code(
             request.args.get("code"),
             scopes=Config.SCOPE,
@@ -142,10 +164,11 @@ def authorized():
 
         session["user"] = result.get("id_token_claims")
 
+        # ✅ Project requirement: MS login maps to admin user
         user = User.query.filter_by(username="admin").first()
         login_user(user)
 
-        # REQUIRED RUBRIC LOG MESSAGE
+        # ✅ REQUIRED RUBRIC LOG MESSAGE
         logger.info("admin logged in successfully")
 
         _save_cache(cache)
@@ -153,10 +176,14 @@ def authorized():
     return redirect(url_for("home"))
 
 
+# -------------------------
+# Logout
+# -------------------------
 @app.route("/logout")
 def logout():
     logout_user()
-    if session.get("user"):
+
+    if session.get("user"):  # Microsoft login
         session.clear()
         return redirect(
             Config.AUTHORITY
@@ -168,6 +195,9 @@ def logout():
     return redirect(url_for("login"))
 
 
+# -------------------------
+# MSAL Helpers
+# -------------------------
 def _load_cache():
     cache = msal.SerializableTokenCache()
     if session.get("token_cache"):
