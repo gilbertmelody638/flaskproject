@@ -5,12 +5,12 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 class Config(object):
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'CHANGE_ME_IN_AZURE'
 
-    BLOB_ACCOUNT = os.environ.get('BLOB_ACCOUNT') or 'flaskblobstorageacct'
+    BLOB_ACCOUNT = os.environ.get('BLOB_ACCOUNT') or 'flaskstoragemel'
     BLOB_STORAGE_KEY = os.environ.get('BLOB_STORAGE_KEY') or 'CHANGE_ME_IN_AZURE'
     BLOB_CONTAINER = os.environ.get('BLOB_CONTAINER') or 'images'
 
-    SQL_SERVER = os.environ.get('SQL_SERVER') or 'flaskprojectmel.database.windows.net'
-    SQL_DATABASE = os.environ.get('SQL_DATABASE') or 'flaskprojectdb'
+    SQL_SERVER = os.environ.get('SQL_SERVER') or 'flaskprojmelsqlserver.database.windows.net'
+    SQL_DATABASE = os.environ.get('SQL_DATABASE') or 'flaskprojdb'
     SQL_USER_NAME = os.environ.get('SQL_USER_NAME') or 'mellie0211'
     SQL_PASSWORD = os.environ.get('SQL_PASSWORD') or 'Thor75311'
     # Below URI may need some adjustments for driver version, based on your OS, if running locally
