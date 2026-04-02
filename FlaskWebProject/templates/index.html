@@ -17,19 +17,11 @@
             </tbody>
             {% for post in posts %}
             <tr>
-                <th scope="row">{{ post.id }}</th>
+                <th scope="row">{{ post.id }} </th>
                 <td>{{ post.title }}</td>
                 <td>{{ post.author }}</td>
-                <td>
-                    {% if post.image_path %}
-                        {{ imageSource }}{{ post.image_path }}
-                    {% else %}
-                        No
-                    {% endif %}
-                </td>
-                <td>
-                    {{ url_for('post', id=post.id) }}Edit Post</a>
-                </td>
+                <td>{{ post.image_path != None }}</td>
+                <td><a href="{{ url_for('post', id=post.id) }}">Edit Post</a></td>
             </tr>
             {% endfor %}
         </table>
