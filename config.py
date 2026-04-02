@@ -6,7 +6,7 @@ class Config(object):
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'secret-key'
 
     BLOB_ACCOUNT = os.environ.get('BLOB_ACCOUNT') or 'flaskstoragemel'
-    BLOB_STORAGE_KEY = os.environ.get('BLOB_STORAGE_KEY') or 'y0inEndDJzOqNX+IHLdMFUFk6gRmEtGzXOnQirEdn9HqN3A9hyODyFDp27GhmExkuroWyeqB1an7+AStN4zHxA=='
+    BLOB_STORAGE_KEY = os.environ.get('BLOB_STORAGE_KEY') or 'GetffromAzurePortal'
     BLOB_CONTAINER = os.environ.get('BLOB_CONTAINER') or 'images'
 
     SQL_SERVER = os.environ.get('SQL_SERVER') or 'flaskprojmelsqlserver.database.windows.net'
