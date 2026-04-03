@@ -6,7 +6,7 @@ import logging
 import uuid
 
 from flask import render_template, flash, redirect, request, session, url_for
-from urllib.parse import url_parse
+from werkzeug.urls import url_parse
 
 from config import Config
 from FlaskWebProject import app
@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 def _image_source_url() -> str:
     """
     Build the Azure Blob base URL safely at request time.
-    This avoids startup failures if settings are not ready at import time.
     """
     account = app.config.get("BLOB_ACCOUNT", "")
     container = app.config.get("BLOB_CONTAINER", "")
@@ -44,7 +43,7 @@ def home():
     )
 
 
-@app.route("/post/<int:id>", methods=["GET", "POST"])
+@app.route("/new_post", methods=["GET", "POST"])
 @login_required
 def new_post():
     form = PostForm()
@@ -86,19 +85,16 @@ def login():
 
     form = LoginForm()
 
-    # Local username/password login (admin user, etc.)
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
 
         if user is None or not user.check_password(form.password.data):
-            # REQUIRED RUBRIC LOG MESSAGE
             logger.warning("Invalid login attempt")
             flash("Invalid username or password")
             return redirect(url_for("login"))
 
         login_user(user, remember=form.remember_me.data)
 
-        # REQUIRED RUBRIC LOG MESSAGE
         if user.username == "admin":
             logger.info("admin logged in successfully")
 
@@ -107,7 +103,6 @@ def login():
             next_page = url_for("home")
         return redirect(next_page)
 
-    # Microsoft sign-in link for the template
     session["state"] = str(uuid.uuid4())
     auth_url = _build_auth_url(scopes=Config.SCOPE, state=session["state"])
     return render_template("login.html", title="Sign In", form=form, auth_url=auth_url)
@@ -123,7 +118,6 @@ def authorized():
 
     if request.args.get("code"):
         cache = _load_cache()
-
         result = _build_msal_app(cache=cache).acquire_token_by_authorization_code(
             request.args.get("code"),
             scopes=Config.SCOPE,
@@ -134,14 +128,9 @@ def authorized():
             return render_template("auth_error.html", result=result)
 
         session["user"] = result.get("id_token_claims")
-
-        # Project behavior: MS login maps to admin user
         user = User.query.filter_by(username="admin").first()
         login_user(user)
-
-        # REQUIRED RUBRIC LOG MESSAGE
         logger.info("admin logged in successfully")
-
         _save_cache(cache)
 
     return redirect(url_for("home"))
@@ -150,8 +139,6 @@ def authorized():
 @app.route("/logout")
 def logout():
     logout_user()
-
-    # If user used Microsoft login, clear session and sign out of Microsoft
     if session.get("user"):
         session.clear()
         return redirect(
@@ -160,7 +147,6 @@ def logout():
             + "?post_logout_redirect_uri="
             + url_for("login", _external=True)
         )
-
     return redirect(url_for("login"))
 
 
