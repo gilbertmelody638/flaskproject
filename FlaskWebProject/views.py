@@ -6,7 +6,7 @@ import logging
 import uuid
 
 from flask import render_template, flash, redirect, request, session, url_for
-from werkzeug.urls import url_parse
+from urllib.parse import url_parse
 
 from config import Config
 from FlaskWebProject import app
@@ -44,7 +44,7 @@ def home():
     )
 
 
-@app.route("/new_post", methods=["GET", "POST"])
+@app.route("/post/<int:id>", methods=["GET", "POST"])
 @login_required
 def new_post():
     form = PostForm()
