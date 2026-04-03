@@ -19,10 +19,7 @@ import msal
 logger = logging.getLogger(__name__)
 
 
-def _image_source_url() -> str:
-    """
-    Build the Azure Blob base URL safely at request time.
-    """
+def _image_source_url():
     account = app.config.get("BLOB_ACCOUNT", "")
     container = app.config.get("BLOB_CONTAINER", "")
     if not account or not container:
